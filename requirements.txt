@@ -1,36 +1,17 @@
-# Unstructured 文档解析核心
-unstructured==0.12.5
-unstructured-client==0.23.1
+# ========== Unstructured ==========
+unstructured[all-docs]==0.11.8
+unstructured-client==0.18.0
 
-# 文档解析支持：HTML / PPTX / PDF / Markdown
-unstructured[all-docs]==0.12.5
-python-pptx==0.6.21
-markdown==3.5.2
-pdfminer.six==20221105
-
-# PDF 视觉解析依赖（hi_res + yolox）
-opencv-python-headless
-pillow
-numpy
-tqdm
-
-# LangChain 组件
-langchain==0.1.17
+# ========== LangChain ==========
+langchain==0.1.20
 langchain-core==0.1.52
-langchain-community==0.0.36
-
-# Supabase Python SDK
-supabase==2.3.0
-
-# PostgreSQL（pgvector存储）
+langchain-community>=0.0.30, <0.1.0 
+# ========== Supabase / pgvector ==========
+supabase==2.1.1
 psycopg2-binary==2.9.9
 
-# ChromaDB（可选）
-chromadb==0.4.22
-
-# Utils（如果你本地有这个工具包）
-# pip install -e ./Utils  ← 如果你把 Utils 写在本地
-
-# Jupyter 展示工具
+# ========== Supporting ==========
+pydantic==1.10.15
+requests
+tqdm
 ipython
-ipykernel
