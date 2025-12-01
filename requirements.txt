@@ -1,11 +1,12 @@
 # ========== Unstructured ==========
 unstructured[all-docs]==0.11.8
-unstructured-client==0.18.0
+unstructured-client==0.23.1  # <-- 已根据您的要求更新
 
 # ========== LangChain ==========
 langchain==0.1.20
 langchain-core==0.1.52
-langchain-community>=0.0.30, <0.1.0 
+langchain-community==0.0.30  # <-- 已修复为已知的兼容版本
+
 # ========== Supabase / pgvector ==========
 supabase==2.1.1
 psycopg2-binary==2.9.9
