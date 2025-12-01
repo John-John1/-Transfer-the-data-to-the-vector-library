@@ -1,36 +1,24 @@
 # Transfer the data to the vector library
 
-#### Description
-{**When you're done, you can delete the content in this README and update the file with details for others getting started with your repository**}
+#### introduce
+This project utilizes functions or APIs from the Unstructured library.
+Divide PDF, PPTX, and HTML files into chunks based on the metadata automatically generated from the parsed elements.
+If there is custom metadata, it will also be inserted subsequently by a custom function.
+After being transformed into vectors by the vector model
+The data is stored in the Supabase (Chroma DB) database because it contains metadata.
+Therefore, it supports hybrid search.
 
 #### Software Architecture
-Software architecture description
-
-#### Installation
-
-1.  xxxx
-2.  xxxx
-3.  xxxx
-
-#### Instructions
-
-1.  xxxx
-2.  xxxx
-3.  xxxx
-
-#### Contribution
-
-1.  Fork the repository
-2.  Create Feat_xxx branch
-3.  Commit your code
-4.  Create Pull Request
+1. Preliminary preparations
+2. Parse the data into Element format and temporarily convert it into JSON for display.
+3. Define your own custom metadata framework.
+4. Retrieve the data from the element, and then create a Python dictionary to store the mapping relationships.
+5. Swap the positions of the key and value (to make it easier to quickly find which chapter the element belongs to based on the parent_id later).
+6. Automatically gather all content from the same chapter in a PDF together, easily restoring the structure of your document.
+7. Divide the data into blocks based on the metadata generated during the parsing process.
+8.2.8 Write to Supabase or an in-memory vector database (ChromaDB)
 
 
-#### Gitee Feature
-
-1.  You can use Readme\_XXX.md to support different languages, such as Readme\_en.md, Readme\_zh.md
-2.  Gitee blog [blog.gitee.com](https://blog.gitee.com)
-3.  Explore open source project [https://gitee.com/explore](https://gitee.com/explore)
-4.  The most valuable open source project [GVP](https://gitee.com/gvp)
-5.  The manual of Gitee [https://gitee.com/help](https://gitee.com/help)
-6.  The most popular members  [https://gitee.com/gitee-stars/](https://gitee.com/gitee-stars/)
+#### Instructions for Use
+pip requiresments.txt
+python main.py
