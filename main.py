@@ -5,34 +5,30 @@ import warnings
 warnings.filterwarnings("ignore")
 
 # ========================
-# 2. 基础库
+# 2. Python 基础库
 # ========================
 import os
 import json
 import requests
-from IPython.display import JSON, Image
 
 # ========================
-# 3. Unstructured Strong API（用于 PDF hi_res yolox）
+# 3. Unstructured Strong API（PDF 高精度解析）
 # ========================
 from unstructured_client import UnstructuredClient
 from unstructured_client.models import shared
+from unstructured.staging.base import dict_to_elements
 
 # ========================
-# 4. Unstructured 本地解析器
+# 4. Unstructured 本地解析器（不导入 partition_pdf）
 # ========================
 from unstructured.partition.html import partition_html
 from unstructured.partition.pptx import partition_pptx
 from unstructured.partition.md import partition_md
-from unstructured.partition.pdf import partition_pdf
-from unstructured.staging.base import dict_to_elements
-
 from unstructured.chunking.title import chunk_by_title
 
 # ========================
-# 5. Supabase / pgvector
+# 5. PostgreSQL / pgvector
 # ========================
-from supabase import create_client
 import psycopg2
 
 # ========================
@@ -42,71 +38,89 @@ from langchain_core.documents import Document
 from langchain.embeddings.base import Embeddings
 
 
-# ========================
-# 7. 百度向量模型（已实现）
-# ========================
+
+# ======================================================
+# 7. 百度向量模型（最新版 API-only）
+# ======================================================
 class BaiduEmbeddings(Embeddings):
     def __init__(self):
-        self.API_KEY = "YOUR_BAIDU_API_KEY"
-        self.SECRET_KEY = "YOUR_BAIDU_SECRET_KEY"
-        self.token = self.fetch_access_token()
+        # 保留你的 API，不改、不隐藏
+        self.API_KEY = "bce-v3/ALTAK-GGlAZiiVpbSzn1mZZkl0U/8d2c1619ccfb488a569efedaa257f9e42aa74b83"
+        self.url = "https://qianfan.baidubce.com/v2/embeddings"
 
-    def fetch_access_token(self):
-        """ 获取百度 access token """
-        url = "https://aip.baidubce.com/oauth/2.0/token"
-        params = {
-            "grant_type": "client_credentials",
-            "client_id": self.API_KEY,
-            "client_secret": self.SECRET_KEY
-        }
-        response = requests.post(url, params=params).json()
-        return response["access_token"]
+    def embed_query(self, text: str):
+        res = requests.post(
+            self.url,
+            headers={
+                "Content-Type": "application/json",
+                "Authorization": f"Bearer {self.API_KEY}",
+            },
+            json={"input": text}
+        ).json()
 
-    def embed_query(self, text):
-        """ 单条向量 """
-        url = f"https://aip.baidubce.com/rpc/2.0/ai_custom/v1/wenxinworkshop/embeddings/embedding-v1?access_token={self.token}"
-        payload = {"input": text}
-        res = requests.post(url, json=payload).json()
         return res["data"][0]["embedding"]
 
     def embed_documents(self, texts):
-        """ 多条向量 """
         return [self.embed_query(t) for t in texts]
 
 
 embeddings = BaiduEmbeddings()
 
 
-# ========================
-# 8. Unstructured Strong API 客户端
-# ========================
+
+# ======================================================
+# 8. Unstructured Strong API（你的 key）
+# ======================================================
 s = UnstructuredClient(
-    api_key_auth="YOUR_UNSTRUCTURED_API_KEY",       # 如果不用 PDF 强视觉解析，可随便填
-    server_url="https://api.unstructured.io",
+    api_key_auth="BAjhezCSAMEhJ9CrvLvJTVlbZjoT30",
+    server_url="https://api.unstructured.io"
 )
 
 
-# ==============================
-# 9. Supabase / PostgreSQL 配置
-# ==============================
-SUPABASE_URL = "http://localhost:54321"
-SUPABASE_KEY = "<你的service_role_key>"
 
-supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
-
+# ======================================================
+# 9. PostgreSQL（真实 supabase-db，端口 5433）
+# ======================================================
 conn = psycopg2.connect(
-    host="supabase-db",    # 你用 docker compose 时这是正确的
-    port=5432,
+    host="localhost",
+    port=5433,             # ← 你映射的端口
     database="postgres",
     user="postgres",
-    password="zydsslxd",
+    password="zydsslxd"    # ← 你的真实密码
 )
 cur = conn.cursor()
 
 
-# ========================
-# 10. 文件解析函数
-# ========================
+
+# ======================================================
+# 10. Strong API 解析 PDF
+# ======================================================
+def parse_pdf_via_api(filepath):
+    print("→ Strong API 解析 PDF:", filepath)
+
+    with open(filepath, "rb") as f:
+        filedata = f.read()
+        files = shared.Files(
+            content=filedata,
+            file_name=os.path.basename(filepath),
+        )
+
+    req = shared.PartitionParameters(
+        files=files,
+        strategy="hi_res",
+        hi_res_model_name="yolox",
+        pdf_infer_table_structure=True,
+        skip_infer_table_types=[],
+    )
+
+    resp = s.general.partition(req)
+    return dict_to_elements(resp.elements)
+
+
+
+# ======================================================
+# 11. 通用解析器（按扩展名）
+# ======================================================
 def parse_file(filepath):
     ext = filepath.lower().split(".")[-1]
 
@@ -120,34 +134,16 @@ def parse_file(filepath):
         return partition_md(filename=filepath)
 
     elif ext == "pdf":
-        try:
-            with open(filepath, "rb") as f:
-                files = shared.Files(content=f.read(), file_name=filepath)
-
-            req = shared.PartitionParameters(
-                files=files,
-                strategy="hi_res",
-                hi_res_model_name="yolox",
-                pdf_infer_table_structure=True,
-                skip_infer_table_types=[],
-            )
-
-            resp = s.general.partition(req)
-            return dict_to_elements(resp.elements)
-
-        except Exception:
-            # 如果 Strong API 出错，回退为本地解析
-            print("⚠ Strong API 解析失败，切换到本地 partition_pdf（fast）")
-            return partition_pdf(filename=filepath, strategy="fast")
+        return parse_pdf_via_api(filepath)
 
     else:
-        print("Unsupported file:", filepath)
+        print("⚠ Unsupported file type:", filepath)
         return []
 
 
-# ========================
-# 11. 批量解析目录
-# ========================
+# ======================================================
+# 12. 批量解析目录
+# ======================================================
 def load_all_elements_from_folder(folder):
     all_elements = []
     for fname in os.listdir(folder):
@@ -159,28 +155,35 @@ def load_all_elements_from_folder(folder):
     return all_elements
 
 
-# ========================
-# 12. 分块
-# ========================
+
+# ======================================================
+# 13. 分块（chunk_by_title）
+# ======================================================
 def chunk_elements(elements):
-    return chunk_by_title(elements, combine_text_under_n_chars=100, max_characters=3000)
+    return chunk_by_title(
+        elements,
+        combine_text_under_n_chars=100,
+        max_characters=3000,
+    )
 
 
-# ========================
-# 13. 转 Document
-# ========================
+
+# ======================================================
+# 14. Element → LangChain Document
+# ======================================================
 def convert_chunks_to_documents(chunks):
     docs = []
     for c in chunks:
-        metadata = c.metadata.to_dict()
-        metadata["source"] = metadata.get("filename", "")
-        docs.append(Document(page_content=c.text, metadata=metadata))
+        meta = c.metadata.to_dict()
+        meta["source"] = meta.get("filename", "")
+        docs.append(Document(page_content=c.text, metadata=meta))
     return docs
 
 
-# ========================
-# 14. 写入数据库
-# ========================
+
+# ======================================================
+# 15. 写入 PostgreSQL + pgvector
+# ======================================================
 def write_documents_to_supabase(documents):
     sql = """
         INSERT INTO documents (content, metadata, embedding)
@@ -188,34 +191,41 @@ def write_documents_to_supabase(documents):
     """
 
     for doc in documents:
-        content = doc.page_content
-        meta = json.dumps(doc.metadata)
-        vec = embeddings.embed_query(content)
-        vec_str = "[" + ",".join(str(x) for x in vec) + "]"
-        cur.execute(sql, (content, meta, vec_str))
+        text = doc.page_content
+        metadata_json = json.dumps(doc.metadata)
+
+        # 调用百度向量模型
+        vector = embeddings.embed_query(text)
+        vector_str = "[" + ",".join(str(v) for v in vector) + "]"
+
+        cur.execute(sql, (text, metadata_json, vector_str))
 
     conn.commit()
-    print("写入完成")
+    print("→ 数据写入完成")
 
 
-# ========================
-# 15. 主入口
-# ========================
+
+# ======================================================
+# 16. 主流程
+# ======================================================
 def ingest_folder_into_supabase(folder="E:/documents"):
-    print("====== 解析文件夹 ======")
+    print("=== 1. 解析目录 ===")
     elements = load_all_elements_from_folder(folder)
 
-    print("====== 分块 ======")
+    print("=== 2. 分块 ===")
     chunks = chunk_elements(elements)
 
-    print("====== 转 Document ======")
+    print("=== 3. 构建 Document ===")
     docs = convert_chunks_to_documents(chunks)
 
-    print("====== 写入 Supabase ======")
+    print("=== 4. 写入数据库 ===")
     write_documents_to_supabase(docs)
 
     print("=== 全流程完成 ===")
 
 
-# 运行
+
+# ======================================================
+# 17. 程序入口
+# ======================================================
 ingest_folder_into_supabase("E:/documents")
