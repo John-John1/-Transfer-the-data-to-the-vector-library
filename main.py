@@ -15,11 +15,8 @@ from unstructured.staging.base import dict_to_elements
 
 from langchain_core.documents import Document
 from langchain.embeddings.base import Embeddings
+# Baidu Embedding API
 
-
-# ======================================================
-# Baidu Embedding API —— 只修复 KeyError: 'data'
-# ======================================================
 class BaiduEmbeddings(Embeddings):
     def __init__(self):
         self.API_KEY = "bce-v3/ALTAK-GGlAZiiVpbSzn1mZZkl0U/8d2c1619ccfb488a569efedaa257f9e42aa74b83"
@@ -33,10 +30,6 @@ class BaiduEmbeddings(Embeddings):
         payload = {"input": text}
 
         res = requests.post(self.url, headers=headers, json=payload).json()
-
-        # ---------------------------
-        # ❗ 修复关键点：不同模型返回格式不同
-        # ---------------------------
         if "data" in res and len(res["data"]) > 0:
             return res["data"][0]["embedding"]
 
@@ -52,11 +45,7 @@ class BaiduEmbeddings(Embeddings):
 
 
 embeddings = BaiduEmbeddings()
-
-
-# ======================================================
-# Unstructured Strong API（你原来的，不动）
-# ======================================================
+# Unstructured Strong API
 from unstructured_client import UnstructuredClient
 from unstructured_client.models import shared
 
@@ -86,10 +75,7 @@ def parse_pdf_via_api(filepath):
     resp = s.general.partition(req)
     return dict_to_elements(resp.elements)
 
-
-# ======================================================
-# File parser —— 不动
-# ======================================================
+# 对这几种文件进行解析
 def parse_file(filepath):
     ext = filepath.lower().split(".")[-1]
 
@@ -108,11 +94,6 @@ def parse_file(filepath):
     else:
         print("Unsupported file:", filepath)
         return []
-
-
-# ======================================================
-# 不动你原来的代码
-# ======================================================
 def load_all_elements_from_folder(folder):
     all_elements = []
     for fname in os.listdir(folder):
@@ -140,10 +121,7 @@ def convert_chunks_to_documents(chunks):
         docs.append(Document(page_content=c.text, metadata=meta))
     return docs
 
-
-# ======================================================
-# pgvector —— 不动
-# ======================================================
+# pgvector
 conn = psycopg2.connect(
     host="localhost",
     port=5433,
@@ -172,10 +150,7 @@ def write_documents_to_supabase(documents):
     conn.commit()
     print("→ Insert completed")
 
-
-# ======================================================
-# 主流程，不动
-# ======================================================
+# 主流程
 def ingest_folder_into_supabase(folder="E:\documents"):
     print("=== Load elements ===")
     elements = load_all_elements_from_folder(folder)
@@ -192,7 +167,5 @@ def ingest_folder_into_supabase(folder="E:\documents"):
     print("=== Done ===")
 
 
-# ======================================================
-# Entry
-# ======================================================
+# 入口
 ingest_folder_into_supabase("E:\documents")
