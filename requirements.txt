@@ -1,17 +1,17 @@
-# ========== Unstructured ==========
+# Unstructured
 unstructured[all-docs]==0.11.8
-unstructured-client==0.23.1  # <-- 已根据您的要求更新
+unstructured-client==0.23.1  
 
-# ========== LangChain ==========
+#  LangChain
 langchain==0.1.20
 langchain-core==0.1.52
-langchain-community==0.0.30  # <-- 已修复为已知的兼容版本
+langchain-community==0.0.30  
 
-# ========== Supabase / pgvector ==========
+# Supabase / pgvector
 supabase==2.1.1
 psycopg2-binary==2.9.9
 
-# ========== Supporting ==========
+# Supporting
 pydantic==1.10.15
 requests
 tqdm
